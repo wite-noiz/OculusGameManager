@@ -1,13 +1,19 @@
-﻿using OculusGameManager.Oculus;
-using OculusGameManager.Utils;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
+using System.Drawing;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using OculusGameManager.Oculus;
+using System.IO;
+using OculusGameManager.Utils;
 
 namespace OculusGameManager.UI
 {
-    public partial class AppPanel : UserControl
+	public partial class AppPanel : UserControl
 	{
 		public OculusApp App { get; private set; }
 
@@ -36,9 +42,10 @@ namespace OculusGameManager.UI
 
 		private void refreshAppDetails()
 		{
-			txtAppTitle.Text = App.Title;
-			txtAppPath.Text = App.IsInstalled ? App.RealInstallPath : "Not installed";
-			picAppImage.ImageLocation = App.ImagePath;
+			txtAppTitle.Text = App.DisplayName;
+			txtAppPath.Text = App.IsInstalled ? App.GetRealInstallPath() : "Not installed";
+			txtAppVersion.Text = App.Version;
+			picAppImage.ImageLocation = App.SmallLandscapeImage;
 			btnBackupApp.Enabled = App.IsInstalled && App.HasManifestFile;
 
 			if (!App.IsInstalled)
@@ -52,26 +59,31 @@ namespace OculusGameManager.UI
 				lblManifestError.Visible = true;
 				lblManifestError.Text = Strings.W_MISSING_MANIFEST;
 			}
+			else if (App.ManifestVersionOutofdate)
+			{
+				lblManifestError.Visible = true;
+				lblManifestError.Text = Strings.W_MANIFEST_OLDVER;
+			}
 			btnMakeManifest.Visible = lblManifestError.Visible;
 
 			var size = "Unknown";
-			if (App.RequiredSpace > 0)
+			if (App.PackageSize > 0)
 			{
-				if (App.RequiredSpace < 1024)
+				if (App.PackageSize < 1024)
 				{
-					size = App.RequiredSpace + " B";
+					size = App.PackageSize + " B";
 				}
-				else if (App.RequiredSpace < 1024 * 1024)
+				else if (App.PackageSize < 1024 * 1024)
 				{
-					size = Math.Round(App.RequiredSpace / 1024.0, 2) + " KB";
+					size = Math.Round(App.PackageSize / 1024.0, 2) + " KB";
 				}
-				else if (App.RequiredSpace < 1024 * 1024 * 1024)
+				else if (App.PackageSize < 1024 * 1024 * 1024)
 				{
-					size = Math.Round(App.RequiredSpace / 1024.0 / 1024.0, 2) + " MB";
+					size = Math.Round(App.PackageSize / 1024.0 / 1024.0, 2) + " MB";
 				}
-				else if (App.RequiredSpace < 1024L * 1024 * 1024 * 1024)
+				else if (App.PackageSize < 1024L * 1024 * 1024 * 1024)
 				{
-					size = Math.Round(App.RequiredSpace / 1024.0 / 1024.0 / 1024.0, 2) + " GB";
+					size = Math.Round(App.PackageSize / 1024.0 / 1024.0 / 1024.0, 2) + " GB";
 				}
 			}
 			txtAppSize.Text = size;
@@ -92,8 +104,9 @@ namespace OculusGameManager.UI
 			string target;
 			using (var dlg = new FolderBrowserDialog())
 			{
+                // TODO: Might be locate not relocate
 				dlg.Description = "Locate folder to move application to (subfolder will be created)";
-				dlg.SelectedPath = Path.GetFullPath(Path.Combine(App.RealInstallPath ?? App.SoftwarePath, ".."));
+				dlg.SelectedPath = Path.GetFullPath(Path.Combine(App.GetRealInstallPath() ?? App.SoftwarePath, ".."));
 				if (dlg.ShowDialog() != DialogResult.OK)
 				{
 					return;

@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.IO;
 using System.IO.Compression;
 
 namespace OculusGameManager.Utils
 {
-    /// <summary>
-    /// Crashes on large files
-    /// </summary>
-    public class ZipBackupHandler : IBackupHandler
+	/// <summary>
+	/// Crashes on large files
+	/// </summary>
+	public class ZipBackupHandler : IBackupHandler
 	{
 		public bool IsFileBased { get { return true; } }
 		public string BackupPath { get; set; }

@@ -56,11 +56,17 @@ namespace OculusGameManager.Utils
 					Directory.Delete(path, true);
 				}
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				throw;
+				if (Directory.Exists(path))
+				{
+					throw;
+				}
+				else
+				{
+					this.Log().Error(ex.Message, ex);
+				}
 			}
-
 		}
 
 		public void BackupFiles(IEnumerable<string> files, string root = null, Action<ProgressEventArgs> progressCallback = null)

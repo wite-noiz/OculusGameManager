@@ -1,8 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace OculusGameManager.Utils
 {
-    public class ProgressEventArgs : EventArgs
+	public class ProgressEventArgs : EventArgs
 	{
 		public long Total { get; set; }
 		public long Progress { get; set; }

@@ -1,7 +1,11 @@
 # OculusGameManager
 
 ## Changelog
-v1.0 2015-04-03
+v1.1 2015-05-06
+* Replaced log trawling logic with OAF parsing
+* Redistributables now included in backups
+
+v1.0 2015-05-03
 * Initial release
 
 ## Introduction
@@ -39,6 +43,7 @@ Currently, the generated manifest files contain no version information, so Oculu
 OGM has only been built against a single valid Oculus installation with additional testing on a PC without Oculus Home.  There are likely to be plenty of unexpected permutations that create interesting issues.
 
 ## Future features
-* Parse the OAF data for detailed app information
 * Query the Oculus graph servers for all app information
-* Produce a completely valid manifest file
+* Space estimatation / task timing
+* Last backup date/time
+* Clear all local profile data

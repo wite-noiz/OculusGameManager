@@ -1,6 +1,12 @@
-﻿namespace OculusGameManager
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace OculusGameManager
 {
-    public static class Strings
+	public static class Strings
 	{
 		public const string D_CHOOSE_BACKUP_DIR = "Locate root backup folder";
 		public const string D_CHOOSE_BACKUP_FILE = "Choose backup file to restore";
@@ -14,5 +20,6 @@
 		public const string M_START_HOME = "Do you want the Home services to be restarted?\nThis may not restart the Home application.";
 
 		public const string W_MISSING_MANIFEST = "Missing Manifest File!";
+		public const string W_MANIFEST_OLDVER = "Manifest File is out-of-date!";
 	}
 }

@@ -1,15 +1,19 @@
 ﻿using OculusGameManager.Oculus;
 using OculusGameManager.Utils;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Drawing;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 
 namespace OculusGameManager.UI
 {
-    public partial class FormOculusApps : Form
+	public partial class FormOculusApps : Form
 	{
 		private readonly OculusManager _mgr;
 		private OculusApp[] _apps;
@@ -28,8 +32,6 @@ namespace OculusGameManager.UI
 
 			txtHomePath.Text = _mgr.InstallationPath ?? Strings.I_NO_OCULUS_PATH;
 			txtBackupLocation.Text = _mgr.BackupPath;
-
-			rebuildApps();
 
 			if (_mgr.InstallationPath == null)
 			{
@@ -50,8 +52,10 @@ namespace OculusGameManager.UI
 					_mgr.StopOculusHome();
 					_stoppedHome = true;
 				}
-			}
-		}
+            }
+
+            rebuildApps();
+        }
 
 		protected override void OnClosing(CancelEventArgs e)
 		{
@@ -68,11 +72,7 @@ namespace OculusGameManager.UI
 
 		private void rebuildApps()
 		{
-			_apps = _mgr.ProcessLibraryData();
-			foreach (var app in _apps)
-			{
-				app.ParseManifestFile();
-			}
+			_apps = _mgr.ProcessLibraryData(true);
 
 			// Unsubscribe from existing
 			foreach (AppPanel pnl in pnlApps.Controls)
@@ -84,7 +84,7 @@ namespace OculusGameManager.UI
 			pnlApps.Controls.Clear();
 
 			// Build app panels
-			foreach (var app in _apps.OrderBy(a => a.Title))
+			foreach (var app in _apps.OrderBy(a => a.DisplayName))
 			{
 				var pnl = new AppPanel(app);
 				pnlApps.SetFlowBreak(pnl, true);
@@ -106,7 +106,7 @@ namespace OculusGameManager.UI
 			pnlProgress.Visible = true;
 			pnlApps.Enabled = false;
 			pnlTop.Enabled = false;
-			lblProgressAction.Text = "{0} {1}...".FormatWith(e.EventName, e.App != null ? e.App.Title : "an app");
+			lblProgressAction.Text = "{0} {1}...".FormatWith(e.EventName, e.App != null ? e.App.DisplayName : "an app");
 		}
 
 		private void pnlApp_ProgressChanged(object sender, ProgressChangedEventArgs e)

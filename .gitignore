@@ -48,6 +48,7 @@ Temporary Items
 
 *.suo
 *.csproj.user
+src/.vs
 src/bin
 src/obj
 src/packages

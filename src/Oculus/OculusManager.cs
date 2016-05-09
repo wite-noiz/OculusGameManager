@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OculusGameManager.Oculus.OAF;
 using OculusGameManager.Utils;
 using System;
 using System.Collections.Generic;
@@ -7,11 +8,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.ServiceProcess;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace OculusGameManager.Oculus
 {
-    public class OculusManager
+	public class OculusManager
 	{
 		private const string OCULUS_PROCESS_NAME = "OculusClient";
 		private const string OCULUS_SERVICE_NAME = "Oculus VR Runtime Service";
@@ -32,9 +35,10 @@ namespace OculusGameManager.Oculus
 				File.WriteAllText(_backupPathFile, _backupPath);
 			}
 		}
+		public string RedistributablesPath { get; private set; }
 		public string SoftwarePath { get; private set; }
 		public string ManifestPath { get; private set; }
-		public string OAFDataPath { get; private set; }
+		public OAFDatastore OAFDatastore { get; private set; }
 
 		public OculusManager()
 		{
@@ -63,22 +67,12 @@ namespace OculusGameManager.Oculus
 				_backupPath = System.IO.Path.GetTempPath();
 			}
 
-			SoftwarePath = Path.Combine(InstallationPath ?? "", "Software");
-			ManifestPath = Path.Combine(InstallationPath ?? "", "Manifests");
-			OAFDataPath = Path.Combine(Environment.ExpandEnvironmentVariables("%APPDATA%"), @"Oculus\sessions\_oaf\data.sqlite");
-		}
+			RedistributablesPath = Path.Combine(InstallationPath, "Redistributables");
+			SoftwarePath = Path.Combine(InstallationPath, "Software");
+			ManifestPath = Path.Combine(InstallationPath, "Manifests");
 
-		public OculusApp[] GetInstalledApps()
-		{
-			var softwareDir = new DirectoryInfo(SoftwarePath);
-            if (!softwareDir.Exists)
-            {
-                return new OculusApp[0];
-            }
-
-			var appDirs = softwareDir.GetDirectories();
-			var apps = appDirs.Where(d => d.Name != "StoreAssets").Select(d => new OculusApp(this, d.Name)).ToArray();
-			return apps;
+			var oafPath = Path.Combine(Environment.ExpandEnvironmentVariables("%APPDATA%"), @"Oculus\sessions\_oaf\data.sqlite");
+			OAFDatastore = new OAFDatastore(oafPath);
 		}
 
 		// TODO: Use session db to talk to web server for full detail?
@@ -86,64 +80,16 @@ namespace OculusGameManager.Oculus
 		private OculusApp[] _apps = null;
 		public OculusApp[] ProcessLibraryData(bool forceRefresh = false)
 		{
+			// TODO: Drop; use OAF records and discovered manifests and folders instead
 			if (!forceRefresh && _apps != null)
 			{
 				return _apps;
 			}
 
-			// Need to check both app datas
-			var localDataPath = Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%");
-			var localLowDataPath = Path.GetFullPath(Path.Combine(localDataPath, "..", "LocalLow"));
+			// Get all in OAF store
+			var oafData = OAFDatastore.GetAppRecords();
+			_apps = oafData.Select(d => new OculusApp(this, Path.Combine(ManifestPath, d.CanonicalName + ".json"), d)).ToArray();
 
-			// Find all files in name order desc (newest first)
-			IEnumerable<string> files = new string[0];
-			var path = Path.Combine(localDataPath, "Oculus", "Home", "logs");
-			if (Directory.Exists(path))
-			{
-				files = files.Union(Directory.GetFiles(path, "Home_*.txt"));
-			}
-			path = Path.Combine(localLowDataPath, "Oculus", "Home", "logs");
-			if (Directory.Exists(path))
-			{
-				files = files.Union(Directory.GetFiles(path, "Home_*.txt"));
-			}
-			files = files.OrderByDescending(f => Path.GetFileName(f)).ToArray();
-
-			// Check file at a time until find a full library
-			var libraryApps = new Dictionary<string, OculusApp>();
-			foreach (var file in files)
-			{
-				var storeData = File.ReadLines(file) // Read each line
-					.Select(l => JsonConvert.DeserializeObject<Dictionary<string, string>>(l)) // Parse line as JSON
-					.Where(d => d.ContainsKey("Message") && d["Message"].StartsWith("Process Payload [LIBRARY_UPDATE]:")) // Only want LIBRARY_UPDATE
-					.OrderByDescending(l => l["Time"]) // Want latest first
-					.Select(d => d["Message"].Substring(33)) // Strip non-JSON
-					.Select(m => JsonConvert.DeserializeObject<Dictionary<string, object>>(m)) // Parse message as JSON
-					.Where(m => m.ContainsKey("isFullLibrary") && m["isFullLibrary"].ToString().ToLower() == "true") // Looking for a "full library"
-					.Take(1) // Only want the latest
-					.SelectMany(m => (JArray)m["entitlements"]) // Take all entitlements
-					.Cast<JObject>()
-					.Select(o => o.Properties().ToDictionary<JProperty, string, string>(p => p.Name, p => o[p.Name].ToString())) // Convert to a proper dictionary
-					.ToArray();
-				if (storeData != null && storeData.Length > 0)
-				{
-					foreach (var dic in storeData)
-					{
-						var appName = dic["packageName"];
-						if (!libraryApps.ContainsKey(appName))
-						{
-							libraryApps[appName] = new OculusApp(this, appName, dic);
-						}
-					}
-					break;
-				}
-			}
-
-			_apps = libraryApps.Values.ToArray();
-			if (_apps.Length == 0)
-			{
-				_apps = GetInstalledApps();
-			}
 			return _apps;
 		}
 

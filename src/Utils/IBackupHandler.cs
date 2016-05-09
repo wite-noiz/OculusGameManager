@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace OculusGameManager.Utils
 {
-    public interface IBackupHandler
+	public interface IBackupHandler
 	{
 		bool IsFileBased { get; }
 		string BackupPath { get; set; }
